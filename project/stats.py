@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 from datetime import datetime, timezone, timedelta
 
 def get_item_stats(slug):
@@ -9,13 +10,12 @@ def get_item_stats(slug):
     data = resp.json()
     return data["payload"]
 
-def test():
+def get_all_items():
     url = f"https://api.warframe.market/v2/items"
     headers = {"Accept-Language": "en"}
     resp = requests.get(url, headers=headers)
     data = resp.json()["data"]
-    print(data[0], data[1])
-
+    return data
 
 def median_prices(slug, mod_rank=None):
     stats = get_item_stats(slug)
@@ -33,14 +33,14 @@ def median_prices(slug, mod_rank=None):
     num_sr = 0
 
     for data_point in historical:
-        if(mod_rank != None and data_point.get("mod_rank",None) != mod_rank):
+        if(mod_rank != None and data_point.get("mod_rank") != mod_rank):
             continue
         historical_median += data_point["median"]
         num_historical+=1
 
 
     for data_point in recent:
-        if(mod_rank != None and data_point.get("mod_rank",None) != mod_rank):
+        if(mod_rank != None and data_point.get("mod_rank") != mod_rank):
             continue
         recent_median +=data_point["median"]
         recent_moving_average +=data_point["wa_price"]
@@ -52,6 +52,8 @@ def median_prices(slug, mod_rank=None):
         if(timedelta(0) <= (now - datetime.fromisoformat(data_point["datetime"])) <= timedelta(hours=12)):
             super_recent_median+= data_point["median"]
             num_sr +=1
+
+    time.sleep(0.35)
     
     return{
         "historical_med": (historical_median / num_historical) if num_historical else None,
@@ -61,7 +63,7 @@ def median_prices(slug, mod_rank=None):
     }
 
 def main():
-    test()
+    print(get_all_items()[0:5])
 
 if __name__ == "__main__":
     main()
