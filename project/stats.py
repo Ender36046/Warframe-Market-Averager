@@ -9,6 +9,13 @@ def get_item_stats(slug):
     data = resp.json()
     return data["payload"]
 
+def test():
+    url = f"https://api.warframe.market/v2/items"
+    headers = {"Accept-Language": "en"}
+    resp = requests.get(url, headers=headers)
+    data = resp.json()["data"]
+    print(data[0], data[1])
+
 
 def median_prices(slug, mod_rank=None):
     stats = get_item_stats(slug)
@@ -26,14 +33,14 @@ def median_prices(slug, mod_rank=None):
     num_sr = 0
 
     for data_point in historical:
-        if(mod_rank != None and data_point["mod_rank"] != mod_rank):
+        if(mod_rank != None and data_point.get("mod_rank",None) != mod_rank):
             continue
         historical_median += data_point["median"]
         num_historical+=1
 
 
     for data_point in recent:
-        if(mod_rank != None and data_point["mod_rank"] != mod_rank):
+        if(mod_rank != None and data_point.get("mod_rank",None) != mod_rank):
             continue
         recent_median +=data_point["median"]
         recent_moving_average +=data_point["wa_price"]
@@ -47,8 +54,14 @@ def median_prices(slug, mod_rank=None):
             num_sr +=1
     
     return{
-        "historical_med":historical_median//num_historical,
-        "recent_med":recent_median//num_recent,
-        "recent_wa": recent_moving_average//num_recent,
-        "sr_med":super_recent_median//num_sr
+        "historical_med": (historical_median / num_historical) if num_historical else None,
+        "recent_med": (recent_median / num_recent) if num_recent else None,
+        "recent_wa": (recent_moving_average / num_recent) if num_recent else None,
+        "sr_med": (super_recent_median / num_sr) if num_sr else None,
     }
+
+def main():
+    test()
+
+if __name__ == "__main__":
+    main()
