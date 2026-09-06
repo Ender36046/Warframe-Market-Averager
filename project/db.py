@@ -1,8 +1,9 @@
-from sqlalchemy import create_engine, text, URL, MetaData, Table, Column, Integer, String, ForeignKey
+from sqlalchemy import create_engine, text, URL, inspect, ForeignKey
 from sqlalchemy.orm import Session, DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.dialects.postgresql import insert
 
-from stats import median_prices, get_all_items
+from stats import median_prices, get_all_items, get_item_stats, get_current_prices
 import os
 
 USERNAME = os.getenv("USERNAME") 
@@ -23,6 +24,7 @@ url = URL.create(
 )
 
 engine = create_engine(url, echo=True, pool_pre_ping=True)
+inspector = inspect(engine)
 
 class Base(DeclarativeBase):
     pass
@@ -48,11 +50,11 @@ class Stat(Base):
     recent_med : Mapped[float] = mapped_column(nullable=True)
     recent_wa : Mapped[float] = mapped_column(nullable=True)
     sr_med : Mapped[float] = mapped_column(nullable=True)
+    num_sell : Mapped[int] = mapped_column(nullable= True)
+    num_buy : Mapped[int] = mapped_column(nullable= True)
 
     def __repr__(self) -> str:
         return f""
-
-
 
 def seed(session: Session):
     items = get_all_items()
@@ -69,18 +71,42 @@ def seed(session: Session):
         ranks = [entry.max_rank, 0] if entry.max_rank else [None]
 
         for rank in ranks:
-            stats = median_prices(entry.slug, mod_rank= rank)
-            if(stats["historical_med"] == None and stats["recent_med"] == None and stats["recent_wa"]  == None and stats["sr_med"] == None):
+            stats = get_item_stats(entry.slug)
+            median_stats = median_prices(stats, mod_rank= rank)
+            current_stats = get_current_prices(entry.slug, mod_rank=rank)
+            current_buy = current_stats["buy"]
+            current_sell = current_stats["sell"]
+
+            good_buys = 0
+            good_sells = 0
+
+            comparison_value = None
+            values = [median_stats["recent_wa"],median_stats["sr_med"], median_stats["recent_med"], median_stats["historical_med"]]
+            comparison_value = next((x for x in values if x is not None), None)
+
+            if(median_stats["historical_med"] == None and median_stats["recent_med"] == None and median_stats["recent_wa"]  == None and median_stats["sr_med"] == None):
                 continue
             else: 
+                if(current_buy!=None and comparison_value != None):
+                    for price in current_buy:
+                        if(price > comparison_value * 0.90):
+                            good_buys += current_buy[price]
+
+                if(current_sell!=None and comparison_value !=None):
+                    for price in current_sell:
+                        if(price < comparison_value * 0.10):
+                            good_sells += current_sell[price]
+
                 tradable = True
                 stat = Stat(
                     id = entry.id,
                     item_rank = rank,
-                    historical_med = stats["historical_med"],
-                    recent_med = stats["recent_med"],
-                    recent_wa = stats["recent_wa"],
-                    sr_med = stats["sr_med"]
+                    historical_med = median_stats["historical_med"],
+                    recent_med = median_stats["recent_med"],
+                    recent_wa = median_stats["recent_wa"],
+                    sr_med = median_stats["sr_med"],
+                    num_sell = good_sells,
+                    num_buy = good_buys
                 )
                 entry.stats.append(stat)
 
@@ -88,12 +114,93 @@ def seed(session: Session):
             session.add(entry)
             session.commit()
 
+def upsert_stats(session: Session, id: str, item_rank, historical_med, recent_med, recent_wa, sr_med, num_sell, num_buy):
+    statement = insert(Stat).values(
+        id = id,
+        item_rank = item_rank,
+        historical_med = historical_med,
+        recent_med = recent_med,
+        recent_wa = recent_wa,
+        sr_med = sr_med,
+        num_sell = num_sell,
+        num_buy = num_buy
+    )
+
+    statement = statement.on_conflict_do_update(
+        index_elements=["id","item_rank"],
+        set_=dict(
+            historical_med = historical_med,
+            recent_med = recent_med,
+            recent_wa = recent_wa,
+            sr_med = sr_med,
+            num_sell = num_sell,
+            num_buy = num_buy
+        )
+    )
+
+    session.execute(statement)
+    session.commit()
+
+def upsert_all(session :Session):
+    items = get_all_items()
+    for item in items:
+        tradable = False
+        max_rank = item.get("maxRank")
+        ranks = [max_rank, 0] if max_rank else [None]
+        slug = item["slug"]
+
+        for rank in ranks:
+            stats = get_item_stats(slug)
+            median_stats = median_prices(stats, mod_rank= rank)
+            current_stats = get_current_prices(slug, mod_rank=rank)
+            current_buy = current_stats["buy"]
+            current_sell = current_stats["sell"]
+
+            good_buys = 0
+            good_sells = 0
+
+            comparison_value = None
+            values = [median_stats["recent_wa"],median_stats["sr_med"], median_stats["recent_med"], median_stats["historical_med"]]
+            comparison_value = next((x for x in values if x is not None), None)
+
+            if(median_stats["historical_med"] == None and median_stats["recent_med"] == None and median_stats["recent_wa"]  == None and median_stats["sr_med"] == None):
+                continue
+            else: 
+                if(current_buy!=None and comparison_value != None):
+                    for price in current_buy:
+                        if(price > comparison_value * 0.90):
+                            good_buys += current_buy[price]
+
+                if(current_sell!=None and comparison_value !=None):
+                    for price in current_sell:
+                        if(price < comparison_value * 0.10):
+                            good_sells += current_sell[price]
+
+                tradable = True
+                stat = Stat(
+                    id = item["id"],
+                    item_rank = rank,
+                    historical_med = median_stats["historical_med"],
+                    recent_med = median_stats["recent_med"],
+                    recent_wa = median_stats["recent_wa"],
+                    sr_med = median_stats["sr_med"],
+                    num_sell = good_sells,
+                    num_buy = good_buys
+                )
+
+            if(tradable):
+                upsert_stats(session, item["id"], rank, median_stats["historical_med"], median_stats["recent_med"],median_stats["recent_wa"],median_stats["sr_med"], good_sells, good_buys)
 
 def main():
-    Base.metadata.drop_all(engine)
-    """Base.metadata.create_all(engine)
     with Session(engine) as session:
-        seed(session)"""
+        if(not inspector.has_table("item_info")):
+            Base.metadata.create_all(engine)
+            seed(session)
+        else:
+            print("Already seeded")
+        upsert_all(session)
+
+        
     
 
 if __name__ == "__main__":
