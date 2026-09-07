@@ -70,7 +70,7 @@ def seed(session: Session):
             max_rank = item.get("maxRank"),
         )
 
-        ranks = [entry.max_rank, 0] if entry.max_rank else [None]
+        ranks = [entry.max_rank, 0] if entry.max_rank is not None else [-1]
 
         for rank in ranks:
             stats = get_item_stats(entry.slug)
@@ -87,7 +87,8 @@ def seed(session: Session):
             comparison_value = next((x for x in values if x is not None), None)
 
             if(median_stats["historical_med"] == None and median_stats["recent_med"] == None and median_stats["recent_wa"]  == None and median_stats["sr_med"] == None):
-                continue
+                session.add(entry)
+                session.commit()
             else: 
                 if(current_buy!=None and comparison_value != None):
                     for price in current_buy:
@@ -119,7 +120,7 @@ def seed(session: Session):
             session.add(entry)
             session.commit()
 
-def upsert_stats(session: Session, id: str, item_rank, historical_med, recent_med, recent_wa, sr_med, num_sell, num_buy):
+def upsert_stats(session: Session, id: str, item_rank, historical_med, recent_med, recent_wa, sr_med, num_sell, num_buy, last_update):
     statement = insert(Stat).values(
         id = id,
         item_rank = item_rank,
@@ -128,7 +129,8 @@ def upsert_stats(session: Session, id: str, item_rank, historical_med, recent_me
         recent_wa = recent_wa,
         sr_med = sr_med,
         num_sell = num_sell,
-        num_buy = num_buy
+        num_buy = num_buy,
+        last_update = last_update
     )
 
     statement = statement.on_conflict_do_update(
@@ -139,7 +141,8 @@ def upsert_stats(session: Session, id: str, item_rank, historical_med, recent_me
             recent_wa = recent_wa,
             sr_med = sr_med,
             num_sell = num_sell,
-            num_buy = num_buy
+            num_buy = num_buy,
+            last_update = last_update
         )
     )
 
@@ -151,10 +154,13 @@ def upsert_all(session :Session):
     for item in items:
         tradable = False
         max_rank = item.get("maxRank")
-        ranks = [max_rank, 0] if max_rank else [None]
+        ranks = [max_rank, 0] if max_rank is not None else [-1]
+        #print(ranks)
         slug = item["slug"]
+        time = datetime.datetime.now(zoneinfo.ZoneInfo("EST"))
 
         for rank in ranks:
+            #print(f"Rank: {rank}")
             stats = get_item_stats(slug)
             median_stats = median_prices(stats, mod_rank= rank)
             current_stats = get_current_prices(slug, mod_rank=rank)
@@ -182,30 +188,10 @@ def upsert_all(session :Session):
                             good_sells += current_sell[price]
 
                 tradable = True
-                time = datetime.datetime.now(zoneinfo.ZoneInfo("EST"))
-                stat = Stat(
-                    id = item["id"],
-                    item_rank = rank,
-                    historical_med = median_stats["historical_med"],
-                    recent_med = median_stats["recent_med"],
-                    recent_wa = median_stats["recent_wa"],
-                    sr_med = median_stats["sr_med"],
-                    num_sell = good_sells,
-                    num_buy = good_buys,
-                    last_update = time.strftime("%d-%m-%Y %H:%M:%S EST")
-                )
+                
 
             if(tradable):
-                upsert_stats(session, item["id"], rank, median_stats["historical_med"], median_stats["recent_med"],median_stats["recent_wa"],median_stats["sr_med"], good_sells, good_buys)
-
-def run_db(session: Session):
-    with Session(engine) as session:
-        if(not inspector.has_table("item_info")):
-            Base.metadata.create_all(engine)
-            seed(session)
-        else:
-            print("Already seeded")
-        upsert_all(session)
+                upsert_stats(session, item["id"], rank, median_stats["historical_med"], median_stats["recent_med"],median_stats["recent_wa"],median_stats["sr_med"], good_sells, good_buys, time.strftime("%d-%m-%Y %H:%M:%S EST"))
 
 def main():
     with Session(engine) as session:

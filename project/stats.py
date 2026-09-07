@@ -27,6 +27,8 @@ def get_all_items():
     return data
 
 def median_prices(stats: dict, mod_rank=None):
+    if(mod_rank == -1):
+        mod_rank = None
     closed_stats = stats["statistics_closed"]
     recent = closed_stats["48hours"]
     historical = closed_stats["90days"]
@@ -69,6 +71,8 @@ def median_prices(stats: dict, mod_rank=None):
     }
 
 def get_current_prices(slug: str, mod_rank = None):
+    if(mod_rank == -1):
+        mod_rank = None
     url = f"https://api.warframe.market/v2/orders/item/{slug}/top?rank={mod_rank}"
     headers = {
         "Accept-Language": "en",

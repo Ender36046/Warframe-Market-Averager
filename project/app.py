@@ -1,6 +1,5 @@
 from flask import Flask, render_template
 from stats import median_prices
-from db import run_db
 
 app = Flask(__name__)
 
