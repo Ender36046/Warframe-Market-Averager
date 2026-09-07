@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, text, URL, inspect, ForeignKey
 from sqlalchemy.orm import Session, DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
+import datetime, zoneinfo
 
 from stats import median_prices, get_all_items, get_item_stats, get_current_prices
 import os
@@ -52,6 +53,7 @@ class Stat(Base):
     sr_med : Mapped[float] = mapped_column(nullable=True)
     num_sell : Mapped[int] = mapped_column(nullable= True)
     num_buy : Mapped[int] = mapped_column(nullable= True)
+    last_update : Mapped[str] = mapped_column(nullable= False)
 
     def __repr__(self) -> str:
         return f""
@@ -98,6 +100,8 @@ def seed(session: Session):
                             good_sells += current_sell[price]
 
                 tradable = True
+                time = datetime.datetime.now(zoneinfo.ZoneInfo("EST"))
+
                 stat = Stat(
                     id = entry.id,
                     item_rank = rank,
@@ -106,7 +110,8 @@ def seed(session: Session):
                     recent_wa = median_stats["recent_wa"],
                     sr_med = median_stats["sr_med"],
                     num_sell = good_sells,
-                    num_buy = good_buys
+                    num_buy = good_buys,
+                    last_update = time.strftime("%d-%m-%Y %H:%M:%S EST")
                 )
                 entry.stats.append(stat)
 
@@ -177,6 +182,7 @@ def upsert_all(session :Session):
                             good_sells += current_sell[price]
 
                 tradable = True
+                time = datetime.datetime.now(zoneinfo.ZoneInfo("EST"))
                 stat = Stat(
                     id = item["id"],
                     item_rank = rank,
@@ -185,11 +191,21 @@ def upsert_all(session :Session):
                     recent_wa = median_stats["recent_wa"],
                     sr_med = median_stats["sr_med"],
                     num_sell = good_sells,
-                    num_buy = good_buys
+                    num_buy = good_buys,
+                    last_update = time.strftime("%d-%m-%Y %H:%M:%S EST")
                 )
 
             if(tradable):
                 upsert_stats(session, item["id"], rank, median_stats["historical_med"], median_stats["recent_med"],median_stats["recent_wa"],median_stats["sr_med"], good_sells, good_buys)
+
+def run_db(session: Session):
+    with Session(engine) as session:
+        if(not inspector.has_table("item_info")):
+            Base.metadata.create_all(engine)
+            seed(session)
+        else:
+            print("Already seeded")
+        upsert_all(session)
 
 def main():
     with Session(engine) as session:
