@@ -25,7 +25,7 @@ url = URL.create(
 )
 
 engine = create_engine(url, echo=True, pool_pre_ping=True)
-inspector = inspect(engine)
+
 
 class Base(DeclarativeBase):
     pass
@@ -192,6 +192,7 @@ def upsert_all(session :Session):
                 upsert_stats(session, item["id"], rank, median_stats["historical_med"], median_stats["recent_med"],median_stats["recent_wa"],median_stats["sr_med"], good_sells, good_buys, time.strftime("%d-%m-%Y %H:%M:%S EST"))
 
 def main():
+    inspector = inspect(engine)
     with Session(engine) as session:
         if(not inspector.has_table("item_info")):
             Base.metadata.create_all(engine)
