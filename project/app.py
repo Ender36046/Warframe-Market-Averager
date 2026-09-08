@@ -20,7 +20,7 @@ def item(item_slug):
         item = session.execute(stmt).scalars().first()
         if item == None:
             abort(404)
-        return render_template("item.html",item = item, item_name = item.name, stats = item.stats)\
+        return render_template("item.html",item = item, item_name = item.name, stats = item.stats)
         
 
 

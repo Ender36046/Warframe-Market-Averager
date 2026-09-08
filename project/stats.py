@@ -99,9 +99,6 @@ def get_current_prices(slug: str, mod_rank = None):
         "sell": sell_dict, 
         "buy": buy_dict,
         }
-    
-    
-    
 
 def main():
     #print(get_all_items()[0:5])
