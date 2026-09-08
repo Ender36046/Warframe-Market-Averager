@@ -1,1 +1,12 @@
 dotenv
+flask
+sqlalchemy.orm
+sqlalchemy
+sqlalchemy.exc
+sqlalchemy.dialects.postgresql
+datetime
+zoneinfo
+timedelta
+time
+requests
+timezone
