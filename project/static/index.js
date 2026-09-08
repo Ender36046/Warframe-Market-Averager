@@ -2,11 +2,11 @@ const searchbar = document.getElementById("searchbar")
 
 let slug = ""
 
-searchbar.addEventListener("input", function(e){
+searchbar.addEventListener("keydown", function(e){
     slug = e.target.value
     const baseURL = window.location.origin
     if(e.key == "Enter"){
-        window.location.href = `${baseURL}/items/slug`
+        window.location.href = `${baseURL}/items/${slug}`
     }
     console.log(slug)
 })
