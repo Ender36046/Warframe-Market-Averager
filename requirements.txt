@@ -1,12 +1,4 @@
-dotenv
-flask
-sqlalchemy.orm
-sqlalchemy
-sqlalchemy.exc
-sqlalchemy.dialects.postgresql
-datetime
-zoneinfo
-timedelta
-time
-requests
-timezone
+Flask>=3.0.0
+SQLAlchemy>=2.0.0
+psycopg[binary]>=3.1.0
+requests>=2.31.0
