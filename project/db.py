@@ -7,10 +7,10 @@ import datetime, zoneinfo
 from stats import median_prices, get_all_items, get_item_stats, get_current_prices
 import os
 
-USERNAME = os.getenv("USERNAME") 
-PASSWORD = os.getenv("PASSWORD") 
-HOST = os.getenv("HOST") 
-PORT = os.getenv("PORT") 
+USERNAME = os.getenv("DB_USERNAME") 
+PASSWORD = os.getenv("DB_PASSWORD") 
+HOST = os.getenv("DB_HOST") 
+PORT = os.getenv("DB_PORT") 
 PORT_INT = int(PORT) if PORT is not None else None 
 DATABASE = os.getenv("DATABASE")
 
