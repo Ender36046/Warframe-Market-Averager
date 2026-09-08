@@ -19,6 +19,7 @@ def item(item_slug):
         stmt = select(Item).where(Item.slug == item_slug)
         item = session.execute(stmt).scalars().first()
         #print("THIS IS THE ITEM", item)
+        print("HI")
         if item == None:
             abort(404)
         return render_template("item.html",item = item, item_name = item.name, stats = item.stats)
@@ -26,4 +27,4 @@ def item(item_slug):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8080, debug= True)

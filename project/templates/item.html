@@ -28,11 +28,15 @@
             <tbody>
                 {% for stat in stats %}
                 <tr>
-                    <td>{{ stat.item_rank | round(2)}}</td>
-                    <td>{{ stat.historical_med | round(2)}}</td>
-                    <td>{{ stat.recent_med | round(2)}}</td>
-                    <td>{{ stat.recent_wa | round(2)}}</td>
-                    <td>{{ stat.sr_med | round(2)}}</td>
+                    <td>{{stat.item_rank | round(2) if stat.item_rank != -1 else "No Rank"}}</td>
+
+
+
+
+                    <td>{{ stat.historical_med | round(2) if stat.historical_med != none else 'No data'}}</td>
+                    <td>{{ stat.recent_med | round(2) if stat.recent_med != none else 'No data'}}</td>
+                    <td>{{ stat.recent_wa | round(2) if stat.recent_wa != none else 'No data'}}</td>
+                    <td>{{ stat.sr_med | round(2) if stat.sr_med != none else 'No data'}}</td>
                     <td>{{ stat.num_sell }}</td>
                     <td>{{ stat.num_buy }}</td>
                     <td>{{ stat.last_update }}</td>
