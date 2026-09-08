@@ -155,12 +155,10 @@ def upsert_all(session :Session):
         tradable = False
         max_rank = item.get("maxRank")
         ranks = [max_rank, 0] if max_rank is not None else [-1]
-        #print(ranks)
         slug = item["slug"]
         time = datetime.datetime.now(zoneinfo.ZoneInfo("EST"))
 
         for rank in ranks:
-            #print(f"Rank: {rank}")
             stats = get_item_stats(slug)
             median_stats = median_prices(stats, mod_rank= rank)
             current_stats = get_current_prices(slug, mod_rank=rank)
@@ -201,9 +199,6 @@ def main():
         else:
             print("Already seeded")
         upsert_all(session)
-
-        
-    
 
 if __name__ == "__main__":
     main()

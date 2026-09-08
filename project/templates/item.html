@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{item.name}} Statistics</title>
+    <link href = "../static/styles.css" rel = "stylesheet">
+</head>
+<body>
+    <h1>{{item.name}} Statistics</h1>
+    {%if item.max_rank%}
+        <p><em>Max Rank: {{item.max_rank}}</em></p>
+    {%endif%}
+
+    <table border="1">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Historical Median</th>
+                    <th>Recent Median</th>
+                    <th>Recent Weighted Average</th>
+                    <th>Super Recent Median</th>
+                    <th>Good Sells</th>
+                    <th>Good Buys</th>
+                    <th>Last Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in stats %}
+                <tr>
+                    <td>{{ stat.item_rank | round(2)}}</td>
+                    <td>{{ stat.historical_med | round(2)}}</td>
+                    <td>{{ stat.recent_med | round(2)}}</td>
+                    <td>{{ stat.recent_wa | round(2)}}</td>
+                    <td>{{ stat.sr_med | round(2)}}</td>
+                    <td>{{ stat.num_sell }}</td>
+                    <td>{{ stat.num_buy }}</td>
+                    <td>{{ stat.last_update }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+</body>
+</html>
