@@ -18,10 +18,9 @@ def item(item_slug):
     with Session(engine) as session:
         stmt = select(Item).where(Item.slug == item_slug)
         item = session.execute(stmt).scalars().first()
-        #print("THIS IS THE ITEM", item)
         print("HI")
         if item == None:
-            abort(404)
+            return render_template("noitem.html", item = item_slug)
         return render_template("item.html",item = item, item_name = item.name, stats = item.stats)
         
 
